@@ -58,7 +58,6 @@ class Address {
         }
         // pushing the new nonce to the pool while using redis;
         selectedAddressReq.push(updatedRequest);
-        console.log('setting request in redis address', address, updatedRequest, selectedAddressReq);
         await set(address, selectedAddressReq);
         let pre = await get(address);
         return updatedRequest;
@@ -72,26 +71,22 @@ class Address {
         for (let i = 0; i < requestPool?.length; i++ ) {
             let isFailed = false;
             let selectedAddressValue = await get(requestPool[i]);
-            console.log('selectedAddress', selectedAddressValue);
             for (let j = 0; !isFailed && j <= selectedAddressValue?.length; j++ ) {
                 let selectedReq = selectedAddressValue[j];
                 if (selectedReq) {
                     const blockChainResponse = await blockChain.sendreq(selectedReq);
-                    console.log('blockChainResponse', blockChainResponse);
                     if (blockChainResponse?.status == TxnStatus.FAILED) {
                         isFailed = true;
                         const reqWithNoFailedTxn = selectedAddressValue.filter(req => req.id != selectedReq.id);
-                        console.log('reqWithNoFailedTxn', reqWithNoFailedTxn);
                         await nonceInstance.putNonce(requestPool[i], selectedReq?.nonce)
                         await set(requestPool[i], reqWithNoFailedTxn);
                         // wait for new request to come
                         selectedReq.status = TxnStatus.SUCCESS;
                     }
-                    console.log('selectedRequest', selectedReq);
                 }
-                console.log('selectedAddressValue', await get(requestPool[i]));
                 // Move to next request
             }
+            console.log('selectedAddressValue', await get(requestPool[i]));
                 // Move to next Address
         }
     }

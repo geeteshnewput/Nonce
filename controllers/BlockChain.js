@@ -3,6 +3,7 @@ class BlockChain {
     }
 
     sendreq (req) {
+        console.log('request reached to blockchain network', req);
         if (req.isFailed) return { status: 'FAILED'};
         return { status: 'SUCCESS'}
     }
