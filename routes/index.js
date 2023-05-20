@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Address = require('../controllers/Address');
 const { get, set } = require('../redis');
+const { ADDRESSES } =  require('../constant');
 
 router.get('/setNonce', async (req, res) => {
     /* 
@@ -24,13 +25,9 @@ router.get('/setNonce', async (req, res) => {
     isFailed: false,
     transaction: [{amount: 100, from : 'c', to: 'h'},]
    };
-   const req4 = {
-    id: 'req4',
-    isFailed: false,
-    transaction: [{amount: 100, from : 'j', to: 'h'},]
-   };
-    const requestsArray = [req1, req2, req3, req4];
-    const allAddress = await get('addresses');
+
+    const requestsArray = [req1, req2, req3];
+    const allAddress = await get(ADDRESSES);
     const address = new Address();
     for (let i = 0; i < requestsArray.length; i++) {
       const randomNumber = Math.floor(Math.random() * 90) + 10;
@@ -39,6 +36,22 @@ router.get('/setNonce', async (req, res) => {
     }
     await address.sendReqToNetwork()
     res.status(200).json({allAddress})
+});
+
+
+router.get('/setNonce2', async (req, res) => {
+
+ const req4 = {
+  id: 'req4',
+  isFailed: false,
+  transaction: [{amount: 100, from : 'j', to: 'h'},]
+ };
+  const requestsArray = [req4];
+  const allAddress = await get(ADDRESSES);
+  const address = new Address();
+  await address.setReqToAddress(allAddress[0], requestsArray[0]);
+  await address.sendReqToNetwork()
+  res.status(200).json({allAddress})
 });
 
 module.exports = router;

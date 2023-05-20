@@ -14,6 +14,6 @@ app.use('/api', routes);
 
 app.listen(PORT, () => {
   const address = new Address()
-  address.generateAddressOnStartUp(3);
+  address.generateAddressOnStartUp(1);
   console.log(`Server listening on port ${PORT}`);
 });

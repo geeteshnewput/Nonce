@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const Nonce = require('./Nonce');
 const BlockChain = require('./BlockChain');
 const { get, set } = require('../redis');
+const { ADDRESSES } =  require('../constant');
 const TxnStatus = {
     PENDING: 'PENDING',
     SUCCESS: 'SUCCESS',
@@ -23,13 +24,12 @@ class Address {
             set(address, []);
             addresses.push(address);
         }
-        
-        set('addresses', addresses);
-        const addresse = await get('addresses');
+        await set(ADDRESSES, addresses);
+        const addresse = await get(ADDRESSES);
         console.log('all address ', addresse);
     }
 
-    generateAddress() {
+    generateAddress(i = 0) {
         const address = crypto.randomBytes(16);
         return address.toString('hex');
     }
@@ -58,6 +58,7 @@ class Address {
         }
         // pushing the new nonce to the pool while using redis;
         selectedAddressReq.push(updatedRequest);
+        console.log('setting request in redis address', address, updatedRequest, selectedAddressReq);
         await set(address, selectedAddressReq);
         let pre = await get(address);
         return updatedRequest;
@@ -66,19 +67,21 @@ class Address {
     async sendReqToNetwork () {
         const blockChain = new BlockChain();
         const nonceInstance = new Nonce();
-        const requestPool = await get('addresses');
+        const requestPool = await get(ADDRESSES);
         // request nonce are set now sending the req to network/BC
-        for (let i = 0; i <= requestPool?.length; i++ ) {
-            const isFailed = false;
+        for (let i = 0; i < requestPool?.length; i++ ) {
+            let isFailed = false;
             let selectedAddressValue = await get(requestPool[i]);
             console.log('selectedAddress', selectedAddressValue);
             for (let j = 0; !isFailed && j <= selectedAddressValue?.length; j++ ) {
-                let selectedReq = selectedAddressValue[i];
+                let selectedReq = selectedAddressValue[j];
                 if (selectedReq) {
                     const blockChainResponse = await blockChain.sendreq(selectedReq);
+                    console.log('blockChainResponse', blockChainResponse);
                     if (blockChainResponse?.status == TxnStatus.FAILED) {
                         isFailed = true;
                         const reqWithNoFailedTxn = selectedAddressValue.filter(req => req.id != selectedReq.id);
+                        console.log('reqWithNoFailedTxn', reqWithNoFailedTxn);
                         await nonceInstance.putNonce(requestPool[i], selectedReq?.nonce)
                         await set(requestPool[i], reqWithNoFailedTxn);
                         // wait for new request to come
@@ -86,7 +89,7 @@ class Address {
                     }
                     console.log('selectedRequest', selectedReq);
                 }
-                console.log('selectedAddressValue', selectedAddressValue);
+                console.log('selectedAddressValue', await get(requestPool[i]));
                 // Move to next request
             }
                 // Move to next Address
