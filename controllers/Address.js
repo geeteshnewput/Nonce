@@ -14,6 +14,7 @@ class Address {
     address;
     // requestPool = [];
     constructor() {
+        this.lock = false;
         this.address = this.generateAddress();
     }
 
@@ -35,21 +36,32 @@ class Address {
     }
 
     async setReqToAddress(address, req) {
-        await this.setNonce(address, req)
-    }
-
-    async sendReq(address, req) {
+        // const addressLock = await get(`${address}-lock`);
+        // console.log('lock is',req.id, this.lock);
+        while (this.lock) {
+        // while (addressLock) {
+            // console.log('lock is active so waiting',req.id)
+            // If the lock is acquired by another service, wait
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        // console.log('setting lock before going to nonce', req.id);
+        // await set(`${address}-lock`, true);
+        // console.log('lock is set to true', req.id);
+        this.lock = true;
         await this.setNonce(address, req);
-        this.sendReqToNetwork();
     }
 
     async setNonce(address, req) {
+        // const addressLock = await get(`${address}-lock`);
+        // console.log('lock is active',req.id , addressLock);
         // fetching nonce latest value from the pool
         let previousRequestOfThisAddress = await get(address);
         const selectedAddressReq = previousRequestOfThisAddress;
         let updatedRequest = req;
         const nonceInstance = new Nonce();
-        const nonce = await nonceInstance.getNonce(address);;
+        const nonce = await nonceInstance.getNonce(address);
+        console.log('nonce for',req.id, nonce);
+
         if (nonce) {
             updatedRequest = {
                 ...req,
@@ -60,6 +72,10 @@ class Address {
         selectedAddressReq.push(updatedRequest);
         await set(address, selectedAddressReq);
         let pre = await get(address);
+        this.lock = false;
+        // set(`${address}-lock`, false);
+        // const addressLockClosed = await get(`${address}-lock`, true);
+        // console.log('lock is closed',req.id , addressLockClosed);
         return updatedRequest;
     }
 
@@ -86,7 +102,7 @@ class Address {
                 }
                 // Move to next request
             }
-            console.log('selectedAddressValue', await get(requestPool[i]));
+            // console.log('selectedAddressValue', await get(requestPool[i]));
                 // Move to next Address
         }
     }

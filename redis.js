@@ -11,4 +11,7 @@ function set(key, value) {
     return redis.set(key, JSON.stringify(value));
 }
 
+async function getRequests(address) {
+    return get(address);
+}
 module.exports = { get, set };

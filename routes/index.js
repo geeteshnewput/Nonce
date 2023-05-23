@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Address = require('../controllers/Address');
-const { get, set } = require('../redis');
-const { ADDRESSES } =  require('../constant');
+const { get, set, getRequests } = require('../redis');
+const { ADDRESSES, ADDRESS_THRESHOLD } =  require('../constant');
 
 router.get('/setNonce', async (req, res) => {
     /* 
@@ -39,18 +39,24 @@ router.get('/setNonce', async (req, res) => {
 });
 
 
-router.get('/setNonce2', async (req, res) => {
+router.get('/sendConcurrentReq', async (req, res) => {
 
  const req4 = {
   id: 'req4',
   isFailed: false,
   transaction: [{amount: 100, from : 'j', to: 'h'},]
  };
-  const requestsArray = [req4];
+ const req5 = {
+  id: 'req5',
+  isFailed: false,
+  transaction: [{amount: 100, from : 'j', to: 'h'},]
+ };
+  const requestsArray = [req4, req5];
   const allAddress = await get(ADDRESSES);
   const address = new Address();
-  await address.setReqToAddress(allAddress[0], requestsArray[0]);
-  await address.sendReqToNetwork()
+  await Promise.all([address.setReqToAddress(allAddress[0], requestsArray[0]), address.setReqToAddress(allAddress[0], requestsArray[1])]);
+  // await Promise.all([address.setReqToAddress(allAddress[1], requestsArray[0]), address.setReqToAddress(allAddress[1], requestsArray[1])]);
+  await address.sendReqToNetwork();
   res.status(200).json({allAddress})
 });
 
